@@ -12,7 +12,7 @@ import org.junit.Test;
 
 public class HttpServer {
 	int iport;
-	int ifile;
+	String ifile;
 	/**
 	 * WEB_ROOT是HTML和其它文件存放的目录. 这里的WEB_ROOT为工作目录下的webroot目录
 	 */
@@ -21,23 +21,19 @@ public class HttpServer {
 	// 关闭服务命令
 	private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
 
-	public HttpServer(int iport, int ifile) {
+	public HttpServer(int iport, String ifile) {
 		this.iport=iport;
 		this.ifile=ifile;
 	}
 
-	public static void main(String[] args) {
-		/*HttpServer server = new HttpServer();
-		//等待连接请求
-		server.await();*/
-	}
+	
 
-	public void await() {
+	public  void await() {
 		ServerSocket serverSocket = null;
-		int port = this.iport;
+		System.out.println(iport);
 		try {
 			//服务器套接字对象
-			serverSocket = new ServerSocket(port, 1, InetAddress.getByName("127.0.0.1"));
+			serverSocket = new ServerSocket(iport, 1, InetAddress.getByName("127.0.0.1"));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);

@@ -30,6 +30,9 @@ public class Response {
                 fis = new FileInputStream(file);
                 int ch = fis.read(bytes, 0, BUFFER_SIZE);
                 String head="HTTP/1.1 200 OK\r\nContent-Type: text/html;charset=GBK\r\n\r\n";
+                //输出响应报文
+                System.out.println("响应报文：");
+                System.out.println(head+new String(bytes));
                 output.write(head.getBytes());
                 while (ch != -1) {
                     output.write(bytes, 0, ch);
