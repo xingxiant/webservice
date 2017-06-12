@@ -26,11 +26,24 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 public class Window {
+	//标志
+	static boolean isOpen=false;
+
 	private static TrayIcon trayIcon = null;
 	static SystemTray tray = SystemTray.getSystemTray();
+
 	private static String port="";
+	private static int iport;
 	private static String file="";
-	private volatile static HttpServer server=null;
+	private volatile static HttpServer server;
+	private static Thread thread;
+	
+	private static JButton buttonStart,buttonStop ;	//创建启动，结束按钮
+	private static JTextField textFile;            //创建文本框对象
+	private static JTextField textPort;            //创建文本框对象
+	private static MenuItem start = new MenuItem("启动");
+	private static MenuItem stop = new MenuItem("暂停");
+	
 	//创建并设置窗口
 	static JFrame frame=new JFrame();
 	/*
@@ -38,10 +51,8 @@ public class Window {
 	 */
 	public static void addComponentdToPane(Container pane) {
 
-		JButton buttonStart,buttonStop;	//创建启动，结束按钮
+		
 		JLabel lable1,lable2;           //创建标签对象
-		JTextField textFile;            //创建文本框对象
-		JTextField textPort;            //创建文本框对象
 		JPanel topPane=new JPanel(); 	//创建放置标签与文本框的面板
 		//设置为网格包布距
 		topPane.setLayout(new GridBagLayout()); 
@@ -93,31 +104,61 @@ public class Window {
 		conLableText.gridy=1;										//第一行
 		conLableText.insets=new Insets(0,0,0,20);
 		topPane.add(textFile,conLableText);
-
 		buttonStart=new JButton("启动");
-
+		buttonStop=new JButton("停止");
+		//按键状态初始化设置
+		if(!isOpen){
+			buttonStart.setEnabled(true);
+			buttonStop.setEnabled(false);
+		}
 		buttonStart.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				//FIXME 启动按钮监听
+				//旧的port值
+				int oldPort=iport;
 				port=textPort.getText();
 				file=textFile.getText();
-				int iport=Integer.parseInt(port);
-				new Thread(new   Runnable(){
+				iport=Integer.parseInt(port);
+				if(server==null||iport!=oldPort){
+					server=new HttpServer(iport,file);
+				}
+				thread=new Thread(new Runnable(){
 					@Override
 					public void run() {
-						if(server==null){
-							HttpServer server= new HttpServer(iport,file);
-							server.await();
-						}
+						server.await();
+
 					}
 
-				}).start();
-				System.out.println("哈哈哈");
+				});
+				thread.start();
+				isOpen=true;
+				//设置按钮显示状态
+				if(isOpen){
+					buttonStart.setEnabled(false);
+					start.setEnabled(false);
+					buttonStop.setEnabled(true);
+					stop.setEnabled(true);
+				}
+				System.out.println("启动成功！");
 			}
 		});
-		buttonStop=new JButton("停止");
+
+		buttonStop.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("关闭！");
+				isOpen=false;
+				thread.stop();
+				if(!isOpen){
+					buttonStart.setEnabled(true);
+					start.setEnabled(true);
+					buttonStop.setEnabled(false);
+					stop.setEnabled(false);
+				}
+			}
+		});
+
 		bottomPane.add(buttonStart);
 		bottomPane.add(buttonStop);
-
 		pane.add(topPane,BorderLayout.CENTER);
 		pane.add(bottomPane,BorderLayout.PAGE_END);
 
@@ -150,75 +191,139 @@ public class Window {
 		frame.setVisible(true);
 
 	}
-	 private static void miniTray() {  //窗口最小化到任务栏托盘
 
-		  ImageIcon trayImg = new ImageIcon("D://mouse.png");//托盘图标
 
-		  PopupMenu pop = new PopupMenu();  //增加托盘右击菜单
-		  MenuItem show = new MenuItem("显示主界面");
-		  MenuItem exit = new MenuItem("退出");
 
-		  show.addActionListener(new ActionListener() {
+	private static void miniTray() {  //窗口最小化到任务栏托盘
 
-		   public void actionPerformed(ActionEvent e) { // 按下还原键
+		ImageIcon trayImg = new ImageIcon("D://mouse.png");//托盘图标
 
-		    tray.remove(trayIcon);
-		    frame.setVisible(true);
-		    frame.setExtendedState(JFrame.NORMAL);
-		    frame.toFront();
-		   }
+		PopupMenu pop = new PopupMenu();  //增加托盘右击菜单
+		MenuItem show = new MenuItem("显示主界面");
+		MenuItem exit = new MenuItem("退出");
+		
 
-		  });
+		show.addActionListener(new ActionListener() {
 
-		  exit.addActionListener(new ActionListener() { // 按下退出键
+			public void actionPerformed(ActionEvent e) { // 按下还原键
 
-		     public void actionPerformed(ActionEvent e) {
+				tray.remove(trayIcon);
+				frame.setVisible(true);
+				frame.setExtendedState(JFrame.NORMAL);
+				frame.toFront();
+			}
 
-		      tray.remove(trayIcon);
-		      System.exit(0);
+		});
 
-		     }
+		exit.addActionListener(new ActionListener() { // 按下退出键
 
-		    });
+			public void actionPerformed(ActionEvent e) {
 
-		  pop.add(show);
-		  pop.add(exit);
-
-		  trayIcon = new TrayIcon(trayImg.getImage(), "web服务器", pop);
-		  trayIcon.setImageAutoSize(true);
-
-		  trayIcon.addMouseListener(new MouseAdapter() {
-
-		   public void mouseClicked(MouseEvent e) { // 鼠标器双击事件
-
-		    if (e.getClickCount() == 2) {
-
-		     tray.remove(trayIcon); // 移去托盘图标
-		     frame.setVisible(true);
-		     frame.setExtendedState(JFrame.NORMAL); // 还原窗口
-		     frame.toFront();
-		    }
-
-		   }
-
-		  });
-
-		  try {
-
-		   tray.add(trayIcon);
-
-		  } catch (AWTException e1) {
-		   // TODO Auto-generated catch block
-		   e1.printStackTrace();
-		  }
-
-		 }
-			public static void main(String[] args) {
-
-				Window.createView();
+				tray.remove(trayIcon);
+				System.exit(0);
 
 			}
 
+		});
+		
+		start.addActionListener(new ActionListener() { // 按下启动键
 
+			public void actionPerformed(ActionEvent e) {
+
+				    //FIXME 启动按钮监听
+					//旧的port值
+					int oldPort=iport;
+					port=textPort.getText();
+					file=textFile.getText();
+					iport=Integer.parseInt(port);
+					if(server==null||iport!=oldPort){
+						server=new HttpServer(iport,file);
+					}
+					thread=new Thread(new Runnable(){
+						@Override
+						public void run() {
+							server.await();
+
+						}
+
+					});
+					thread.start();
+					isOpen=true;
+					//设置按钮显示状态
+					if(isOpen){
+						buttonStart.setEnabled(false);
+						start.setEnabled(false);
+						buttonStop.setEnabled(true);
+						stop.setEnabled(true);
+					}
+					System.out.println("启动成功！");
+
+			}
+
+		});
+
+		stop.addActionListener(new ActionListener() { // 按下停止键
+
+			public void actionPerformed(ActionEvent e) {
+
+				System.out.println("关闭！");
+				isOpen=false;
+				thread.stop();
+				if(!isOpen){
+					buttonStart.setEnabled(true);
+					start.setEnabled(true);
+					buttonStop.setEnabled(false);
+					stop.setEnabled(false);
+				}
+			}
+
+		});
+
+		pop.add(show);
+		pop.add(exit);
+		pop.add(start);
+		pop.add(stop);
+
+		trayIcon = new TrayIcon(trayImg.getImage(), "web服务器", pop);
+		trayIcon.setImageAutoSize(true);
+
+		trayIcon.addMouseListener(new MouseAdapter() {
+
+			public void mouseClicked(MouseEvent e) { // 鼠标器双击事件
+
+				if (e.getClickCount() == 2) {
+
+					tray.remove(trayIcon); // 移去托盘图标
+					frame.setVisible(true);
+					frame.setExtendedState(JFrame.NORMAL); // 还原窗口
+					frame.toFront();
+				}
+
+			}
+
+		});
+
+		try {
+
+			tray.add(trayIcon);
+
+		} catch (AWTException e1) {
+			
+			e1.printStackTrace();
 		}
+
+	}
+	public static void main(String[] args) {
+
+		Window.createView();
+
+	}
+	public class MyRun implements Runnable {
+		public void run() {
+			server.await();
+		}
+	}
+
+}
+
 

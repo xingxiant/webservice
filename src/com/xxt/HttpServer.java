@@ -13,6 +13,7 @@ import org.junit.Test;
 public class HttpServer {
 	int iport;
 	String ifile;
+	ServerSocket serverSocket=null;
 	/**
 	 * WEB_ROOT是HTML和其它文件存放的目录. 这里的WEB_ROOT为工作目录下的webroot目录
 	 */
@@ -29,11 +30,14 @@ public class HttpServer {
 	
 
 	public  void await() {
-		ServerSocket serverSocket = null;
+		
 		System.out.println(iport);
 		try {
 			//服务器套接字对象
-			serverSocket = new ServerSocket(iport, 1, InetAddress.getByName("127.0.0.1"));
+			if(serverSocket==null){
+				serverSocket = new ServerSocket(iport, 1, InetAddress.getByName("127.0.0.1"));
+			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
