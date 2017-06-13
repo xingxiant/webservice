@@ -22,9 +22,10 @@ public class Response {
 
     public void sendStaticResource() throws IOException {
         byte[] bytes = new byte[BUFFER_SIZE];
-        FileInputStream fis = null;
+        FileInputStream fis = null;    //文件输入流，从本地磁盘获取资源
         try {
             //将web文件写入到OutputStream字节流中
+        	//FIXME 
             File file = new File(HttpServer.WEB_ROOT, request.getUri());
             if (file.exists()) {
                 fis = new FileInputStream(file);
@@ -33,7 +34,7 @@ public class Response {
                 //输出响应报文
                 System.out.println("响应报文：");
                 System.out.println(head+new String(bytes));
-                output.write(head.getBytes());
+                output.write(head.getBytes());        //套接字输出流
                 while (ch != -1) {
                     output.write(bytes, 0, ch);
                     ch = fis.read(bytes, 0, BUFFER_SIZE);

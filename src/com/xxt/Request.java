@@ -29,7 +29,7 @@ public class Request {
         System.out.print(request.toString());
         uri = parseUri(request.toString());
     }
-
+    
     /**
      * 
      * requestString形式如下：

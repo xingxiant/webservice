@@ -17,9 +17,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -28,30 +30,33 @@ import javax.swing.JTextField;
 public class Window {
 	//标志
 	static boolean isOpen=false;
-
+    
+	//托盘
 	private static TrayIcon trayIcon = null;
-	static SystemTray tray = SystemTray.getSystemTray();
+	private static SystemTray tray = SystemTray.getSystemTray();
 
-	private static String port="";
+	private static String port="8080";
 	private static int iport;
-	private static String file="";
+	private static String file="D:";
 	private volatile static HttpServer server;
 	private static Thread thread;
-	
-	private static JButton buttonStart,buttonStop ;	//创建启动，结束按钮
+
+	private static JButton buttonStart,buttonStop,direct ;	//创建启动，结束按钮
 	private static JTextField textFile;            //创建文本框对象
 	private static JTextField textPort;            //创建文本框对象
 	private static MenuItem start = new MenuItem("启动");
 	private static MenuItem stop = new MenuItem("暂停");
-	
+
+
 	//创建并设置窗口
-	static JFrame frame=new JFrame();
+	static JFrame frame=new JFrame("web服务器");
 	/*
 	 * 添加组件的方法：
 	 */
 	public static void addComponentdToPane(Container pane) {
 
-		
+
+
 		JLabel lable1,lable2;           //创建标签对象
 		JPanel topPane=new JPanel(); 	//创建放置标签与文本框的面板
 		//设置为网格包布距
@@ -78,9 +83,8 @@ public class Window {
 		GridBagConstraints conLable2=new GridBagConstraints();  //创建约束对象
 		conLable2.fill=GridBagConstraints.NONE;				  //组件保持自然大小
 		lable2=new JLabel("路径");
-
 		conLable2.gridx=0;                                       //第一列
-		conLable2.gridy=1;										//第一行
+		conLable2.gridy=1;										//第二行
 		conLable2.anchor=GridBagConstraints.LINE_END;			//标签靠右对齐
 		topPane.add(lable2,conLable2);
 
@@ -91,7 +95,7 @@ public class Window {
 		conLablePort.weighty=0.8;									//竖直方向权重
 		conLablePort.weightx=0.5;									//水平方向权重
 		conLablePort.gridx=1;                                       //第二列
-		conLablePort.gridy=0;										//第二行
+		conLablePort.gridy=0;										//第一行
 		conLablePort.insets=new Insets(10,0,10,20);
 		topPane.add(textPort,conLablePort);
 
@@ -101,27 +105,40 @@ public class Window {
 		textFile=new JTextField();
 		conLableText.weighty=0.5;									//竖直方向权重
 		conLableText.gridx=1;                                       //第二列
-		conLableText.gridy=1;										//第一行
+		conLableText.gridy=1;										//第二行
 		conLableText.insets=new Insets(0,0,0,20);
 		topPane.add(textFile,conLableText);
+		
 		buttonStart=new JButton("启动");
 		buttonStop=new JButton("停止");
+		direct = new JButton("浏览目录");
+		
 		//按键状态初始化设置
 		if(!isOpen){
 			buttonStart.setEnabled(true);
 			buttonStop.setEnabled(false);
 		}
+		
 		buttonStart.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				//FIXME 启动按钮监听
 				//旧的port值
 				int oldPort=iport;
-				port=textPort.getText();
-				file=textFile.getText();
+				String oldFile=file;
+				if(!"".equals(textPort.getText())){
+					port=textPort.getText();
+					
+				}
+				if(!"".equals(textFile.getText())){
+					file=textFile.getText();
+					
+				}
+				
 				iport=Integer.parseInt(port);
 				if(server==null||iport!=oldPort){
 					server=new HttpServer(iport,file);
 				}
+				
 				thread=new Thread(new Runnable(){
 					@Override
 					public void run() {
@@ -131,6 +148,7 @@ public class Window {
 
 				});
 				thread.start();
+				
 				isOpen=true;
 				//设置按钮显示状态
 				if(isOpen){
@@ -156,9 +174,37 @@ public class Window {
 				}
 			}
 		});
+		
+		//FIXME 目录浏览
+		direct.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+
+				JFileChooser jfc = new JFileChooser();
+				jfc.setDialogTitle("选择一个目录");
+				jfc.setDialogType(JFileChooser.OPEN_DIALOG);
+				jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int res = jfc.showOpenDialog(null);
+				if (res == JFileChooser.APPROVE_OPTION) {
+					File dir = jfc.getSelectedFile();
+					textFile.setText(dir.getAbsolutePath());
+				}
+			}
+		});
 
 		bottomPane.add(buttonStart);
 		bottomPane.add(buttonStop);
+
+		//目录按钮
+		GridBagConstraints conLabled=new GridBagConstraints();  //创建约束对象
+		conLabled.fill=GridBagConstraints.NONE;				  //组件保持自然大小
+		//水平方向权重
+		conLabled.gridx=2;                                       //第三列
+		conLabled.gridy=1;										//第二行
+		conLabled.anchor=GridBagConstraints.LINE_END;			//标签靠右对齐
+		topPane.add(direct,conLabled);
+
+
+
 		pane.add(topPane,BorderLayout.CENTER);
 		pane.add(bottomPane,BorderLayout.PAGE_END);
 
@@ -200,9 +246,53 @@ public class Window {
 
 		PopupMenu pop = new PopupMenu();  //增加托盘右击菜单
 		MenuItem show = new MenuItem("显示主界面");
+		MenuItem reStart = new MenuItem("重新启动");
 		MenuItem exit = new MenuItem("退出");
-		
 
+
+		reStart.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) { // 按下重新启动
+				thread.stop();
+				//FIXME 启动按钮监听
+				//旧的port值
+				int oldPort=iport;
+				if(!"".equals(textPort.getText())){
+					port=textPort.getText();
+					
+				}
+				if(!"".equals(textFile.getText())){
+					file=textFile.getText();
+					
+				}
+				
+				iport=Integer.parseInt(port);
+				if(server==null||iport!=oldPort){
+					server=new HttpServer(iport,file);
+				}
+				thread=new Thread(new Runnable(){
+					@Override
+					public void run() {
+						server.await();
+
+					}
+
+				});
+				thread.start();
+				
+				isOpen=true;
+				//设置按钮显示状态
+				if(isOpen){
+					buttonStart.setEnabled(false);
+					start.setEnabled(false);
+					buttonStop.setEnabled(true);
+					stop.setEnabled(true);
+				}
+				System.out.println("重新启动成功！");
+			}
+
+		});
+		
 		show.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) { // 按下还原键
@@ -225,38 +315,46 @@ public class Window {
 			}
 
 		});
-		
+
 		start.addActionListener(new ActionListener() { // 按下启动键
 
 			public void actionPerformed(ActionEvent e) {
 
-				    //FIXME 启动按钮监听
-					//旧的port值
-					int oldPort=iport;
+				//FIXME 启动按钮监听
+				//旧的port值
+				int oldPort=iport;
+				if(!"".equals(textPort.getText())){
 					port=textPort.getText();
+					
+				}
+				if(!"".equals(textFile.getText())){
 					file=textFile.getText();
-					iport=Integer.parseInt(port);
-					if(server==null||iport!=oldPort){
-						server=new HttpServer(iport,file);
-					}
-					thread=new Thread(new Runnable(){
-						@Override
-						public void run() {
-							server.await();
+					
+				}
+				
+				
+				iport=Integer.parseInt(port);
+				if(server==null||iport!=oldPort){
+					server=new HttpServer(iport,file);
+				}
+				thread=new Thread(new Runnable(){
+					@Override
+					public void run() {
+						server.await();
 
-						}
-
-					});
-					thread.start();
-					isOpen=true;
-					//设置按钮显示状态
-					if(isOpen){
-						buttonStart.setEnabled(false);
-						start.setEnabled(false);
-						buttonStop.setEnabled(true);
-						stop.setEnabled(true);
 					}
-					System.out.println("启动成功！");
+
+				});
+				thread.start();
+				isOpen=true;
+				//设置按钮显示状态
+				if(isOpen){
+					buttonStart.setEnabled(false);
+					start.setEnabled(false);
+					buttonStop.setEnabled(true);
+					stop.setEnabled(true);
+				}
+				System.out.println("启动成功！");
 
 			}
 
@@ -280,9 +378,10 @@ public class Window {
 		});
 
 		pop.add(show);
-		pop.add(exit);
 		pop.add(start);
 		pop.add(stop);
+		pop.add(reStart);
+		pop.add(exit);
 
 		trayIcon = new TrayIcon(trayImg.getImage(), "web服务器", pop);
 		trayIcon.setImageAutoSize(true);
@@ -308,7 +407,7 @@ public class Window {
 			tray.add(trayIcon);
 
 		} catch (AWTException e1) {
-			
+
 			e1.printStackTrace();
 		}
 
@@ -318,11 +417,7 @@ public class Window {
 		Window.createView();
 
 	}
-	public class MyRun implements Runnable {
-		public void run() {
-			server.await();
-		}
-	}
+	
 
 }
 
